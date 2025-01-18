@@ -2,8 +2,9 @@
 // 以下のコードは、業務で使うようなSNSアプリのユーザーの検索機能を簡易的に実装したものです。
 // 実行方法 : node ./sns/searchUsers.js
 
-import { v4 as uuidv4 } from "uuid";
 import bcrypt from "bcrypt";
+
+const uuid = () => crypto.randomUUID();
 
 const users = [
     {
@@ -90,12 +91,12 @@ const users = [
 
 const blockUsers = [
     {
-        id: uuidv4(),
+        id: uuid(),
         blockTo: "USER00000004",
         blockBy: "USER00000001", // EricがTomをブロック
     },
     {
-        id: uuidv4(),
+        id: uuid(),
         blockTo: "USER00000003",
         blockBy: "USER00000001", // EricがBobをブロック
     },
@@ -108,11 +109,21 @@ async function encryptPassword(password) {
     return await bcrypt.hash(password, 10);
 }
 
-function login(userName, password) {
-    const matchUser = users.find(
-        (user) =>
+async function login(userName, password) {
+    // array.find()の非同期版
+    const asyncFind = async (array, predicate) => {
+        for (const item of array) {
+            if (await predicate(item)) {
+                return item;
+            }
+        }
+    };
+
+    const matchUser = await asyncFind(
+        users,
+        async (user) =>
             user.userName === userName &&
-            bcrypt.compare(password, user.password)
+            (await bcrypt.compare(password, user.password))
     );
 
     if (matchUser) {
@@ -156,48 +167,34 @@ function searchUseCase(isAdult, searchHobbies) {
     const blockUser = getBlockUsers(); // ブロックしているユーザーを取得
     const users = getUsers(); // ユーザー一覧を取得
 
-    // ※ 今回は簡易的に関数内に実装しました。アプリ全体として汎用的に使う条件は、関数外に定義することが望ましいです
-    // 自分自身でないかを判定
-    const isNotOwn = (targetUserId, ownUserId) => targetUserId !== ownUserId;
-    // 自分が相手ユーザーをブロックしていないかを判定
-    const isNotBlock = (blockUser, targetUserId) =>
-        !blockUser.some((block) => block.blockTo === targetUserId);
-    // 検索対象が成人だけの場合の判定（成人以外も検索する場合は、一律trueを返す）
-    const isSearchTargetAge = (age) => (isAdult ? age >= 20 : true);
-    // 検索対象の趣味が含まれているかを判定
-    const hasSearchHobbies = (targetUserHobbies) =>
-        targetUserHobbies?.length > 0 &&
-        searchHobbies.some((hobby) => targetUserHobbies.includes(hobby));
-    // 検索対象が鍵アカウント設定でないかを判定
-    const isNotSearchSecret = (isSecret) => !isSecret;
-
     // 検索条件に合致するユーザーだけを取得
     // ※ 本来なら、検索条件で絞り込むためこここで条件を作るのは現実的ではないが...例として無理やりなコードで書いてます
     const resultUsers = [];
     for (const user of users) {
         if (
-            isNotOwn(user.id, loggedInUser.id) &&
-            isNotBlock(blockUser, user.id) &&
-            isSearchTargetAge(user.age) &&
-            hasSearchHobbies(user.hobbies) &&
-            isNotSearchSecret(user.isSecret)
+            user.id !== loggedInUser.id && // 自分自身は表示しない
+            !blockUser.some((block) => block.blockTo === user.id) && // ブロックしているユーザーは表示しない
+            ((isAdult && user.age >= 20) || !isAdult) && // 20歳以上のユーザーのみ表示
+            ((searchHobbies?.length > 0 && // 趣味が指定されている場合
+                searchHobbies.some((hobby) => user.hobbies.includes(hobby))) ||
+                !searchHobbies) && // 指定した趣味のユーザーのみ表示
+            !user.isSecret // 検索対象が鍵アカウント設定でないかを判定
         ) {
             resultUsers.push(user);
         }
     }
 
-    let message = "条件に合致するユーザーはいません";
-    if (resultUsers.length > 0) {
-        message = `条件に合致するユーザーが ${resultUsers.length}件 見つかりました`;
-    }
+    const message =
+        resultUsers.length > 0
+            ? `条件に合致するユーザーが ${resultUsers.length}件 見つかりました`
+            : "条件に合致するユーザーはいません";
 
     return { resultUsers, message };
 }
 
 // 使用例
 console.log("ログイン画面です");
-const loggedInResult = login("Eric", "password1"); // ログイン
-console.log(`ログイン結果: ${loggedInResult}`);
+const loggedInResult = await login("Eric", "password1");
 
 console.log("\n他画面でユーザーの検索一覧を確認します");
 const searchResult = searchUseCase(true, ["野球", "読書"]);
