@@ -1,4 +1,4 @@
-import { v4 as uuidv4 } from "uuid";
+const uuid = () => crypto.randomUUID();
 
 const taskStatus = Object.freeze({
     PENDING: "pending",
@@ -7,13 +7,13 @@ const taskStatus = Object.freeze({
 });
 
 const allTasks = [
-    { id: uuidv4(), title: "牛乳を買う", status: taskStatus.PENDING },
-    { id: uuidv4(), title: "大福を食べる", status: taskStatus.ACTIVE },
-    { id: uuidv4(), title: "猫を洗う", status: taskStatus.COMPLETED },
+    { id: uuid(), title: "牛乳を買う", status: taskStatus.PENDING },
+    { id: uuid(), title: "大福を食べる", status: taskStatus.ACTIVE },
+    { id: uuid(), title: "猫を洗う", status: taskStatus.COMPLETED },
 ];
 
 // 完了以外のタスクを取得する
-export function getTasks() {
+function getTasks() {
     const notCompleteTasks = allTasks.filter(
         (task) => task.status !== taskStatus.COMPLETED
     );
@@ -21,14 +21,14 @@ export function getTasks() {
 }
 
 // 全てのタスクを取得する
-export function getAllTasks() {
+function getAllTasks() {
     return allTasks;
 }
 
 // タスクを追加する
-export function addTask(newTaskTitle) {
+function addTask(newTaskTitle) {
     const newTask = {
-        id: uuidv4(),
+        id: uuid(),
         title: newTaskTitle,
         status: taskStatus.PENDING,
     };
@@ -37,7 +37,7 @@ export function addTask(newTaskTitle) {
 }
 
 // タスクのステータスを更新する
-export function updateTaskStatus(targetTaskId, newStatus) {
+function updateTaskStatus(targetTaskId, newStatus) {
     const targetTask = allTasks.find((task) => task.id === targetTaskId);
     if (!targetTask) {
         return null;
@@ -45,3 +45,9 @@ export function updateTaskStatus(targetTaskId, newStatus) {
     targetTask.status = newStatus;
     return targetTask;
 }
+
+// 使用例
+console.log(getTasks());
+
+addTask("昼寝をする");
+console.log(getTasks());

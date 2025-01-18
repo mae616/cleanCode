@@ -1,3 +1,7 @@
+// [6] コードの複雑化を避ける のコード例
+// 以下のコードは、業務で使うようなSNSアプリのユーザーの検索機能を簡易的に実装したものです。
+// 実行方法 : node ./sns/searchUsers.js
+
 import { v4 as uuidv4 } from "uuid";
 import bcrypt from "bcrypt";
 
@@ -87,13 +91,13 @@ const users = [
 const blockUsers = [
     {
         id: uuidv4(),
-        blockTo: "USER00000001",
-        blockBy: "USER00000004", // TomがEricをブロック
+        blockTo: "USER00000004",
+        blockBy: "USER00000001", // EricがTomをブロック
     },
     {
         id: uuidv4(),
-        blockTo: "USER00000001",
-        blockBy: "USER00000003", // BobがEricをブロック
+        blockTo: "USER00000003",
+        blockBy: "USER00000001", // EricがBobをブロック
     },
 ];
 
@@ -124,7 +128,7 @@ function checkIfLoggedIn() {
 
 function getBlockUsers() {
     return blockUsers.filter(
-        (blockUser) => blockUser.blockTo === loggedInUser.id
+        (blockUser) => blockUser.blockBy === loggedInUser.id
     );
 }
 
@@ -144,31 +148,40 @@ function getUsers() {
 }
 
 function searchUseCase(isAdult, searchHobbies) {
-    // ログインしているかを確認ログインしてるかの確認
+    // ログインしているかを確認
     if (!checkIfLoggedIn()) {
         return "ログインしていません";
     }
 
-    // ブロックしているユーザーを取得
-    const blockUser = getBlockUsers();
-    // ユーザー一覧を取得
-    const users = getUsers();
+    const blockUser = getBlockUsers(); // ブロックしているユーザーを取得
+    const users = getUsers(); // ユーザー一覧を取得
 
-    // 条件に合致するユーザーだけを取得
-    // ※ 本来なら、検索条件で絞り込むためこここで条件を作るのは現実的ではないが...
+    // ※ 今回は簡易的に関数内に実装しました。アプリ全体として汎用的に使う条件は、関数外に定義することが望ましいです
+    // 自分自身でないかを判定
+    const isNotOwn = (targetUserId, ownUserId) => targetUserId !== ownUserId;
+    // 自分が相手ユーザーをブロックしていないかを判定
+    const isNotBlock = (blockUser, targetUserId) =>
+        !blockUser.some((block) => block.blockTo === targetUserId);
+    // 検索対象が成人だけの場合の判定（成人以外も検索する場合は、一律trueを返す）
+    const isSearchTargetAge = (age) => (isAdult ? age >= 20 : true);
+    // 検索対象の趣味が含まれているかを判定
+    const hasSearchHobbies = (targetUserHobbies) =>
+        targetUserHobbies?.length > 0 &&
+        searchHobbies.some((hobby) => targetUserHobbies.includes(hobby));
+    // 検索対象が鍵アカウント設定でないかを判定
+    const isNotSearchSecret = (isSecret) => !isSecret;
+
+    // 検索条件に合致するユーザーだけを取得
+    // ※ 本来なら、検索条件で絞り込むためこここで条件を作るのは現実的ではないが...例として無理やりなコードで書いてます
     const resultUsers = [];
     for (const user of users) {
         if (
-            user.id !== loggedInUser.id && // 自分自身は表示しない
-            !blockUser.some((block) => block.blockBy === user.id) && // ブロックしているユーザーは表示しない
-            isAdult &&
-            user.age >= 20 && // 20歳以上のユーザーのみ表示
-            searchHobbies &&
-            searchHobbies.length > 0 && // 趣味が指定されている場合
-            searchHobbies.some((hobby) => user.hobbies.includes(hobby)) && // 指定した趣味のユーザーのみ表示
-            !user.isSecret
+            isNotOwn(user.id, loggedInUser.id) &&
+            isNotBlock(blockUser, user.id) &&
+            isSearchTargetAge(user.age) &&
+            hasSearchHobbies(user.hobbies) &&
+            isNotSearchSecret(user.isSecret)
         ) {
-            // 鍵アカウントでない
             resultUsers.push(user);
         }
     }

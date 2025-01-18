@@ -1,15 +1,16 @@
-import { v4 as uuidv4 } from "uuid";
 import bcrypt from "bcrypt";
+
+const uuid = () => crypto.randomUUID();
 
 const users = [
     {
-        id: uuidv4(),
+        id: uuid(),
         isAdmin: true,
         userName: "Eric",
         password: await encryptPassword("password1"),
     },
     {
-        id: uuidv4(),
+        id: uuid(),
         isAdmin: false,
         userName: "Alice",
         password: await encryptPassword("password2"),
@@ -33,12 +34,12 @@ const posts = [
 
 const postLikes = [
     {
-        id: `like${uuidv4()}`,
+        id: `like${uuid()}`,
         postId: "POST20241224001",
         likedBy: "Alice",
     },
     {
-        id: `like${uuidv4()}`,
+        id: `like${uuid()}`,
         postId: "POST20241224001",
         likedBy: "Bob",
     },
@@ -51,11 +52,21 @@ async function encryptPassword(password) {
     return await bcrypt.hash(password, 10);
 }
 
-function login(userName, password) {
-    const matchUser = users.find(
-        (user) =>
+async function login(userName, password) {
+    // array.find()の非同期版
+    const asyncFind = async (array, predicate) => {
+        for (const item of array) {
+            if (await predicate(item)) {
+                return item;
+            }
+        }
+    };
+
+    const matchUser = await asyncFind(
+        users,
+        async (user) =>
             user.userName === userName &&
-            bcrypt.compare(password, user.password)
+            (await bcrypt.compare(password, user.password))
     );
 
     if (matchUser) {
@@ -91,7 +102,7 @@ function getMyPosts() {
     return resultMyPost;
 }
 
-function readMyPostsUseCase() {
+function fetchMyPostsUseCase() {
     // ログインしているかを確認
     let flag = checkIfLoggedIn(); // ログインしてるかの確認
     if (!flag) {
@@ -103,16 +114,15 @@ function readMyPostsUseCase() {
 
     // いいねされた投稿があるか確認
     let totalLikeCount = 0;
-    if (myPosts.length > 0) {
-        for (const post of myPosts) {
-            const likeCount = post.likeCount;
-            if (likeCount > 0) {
-                flag = true;
-                totalLikeCount += likeCount;
-            }
+    for (const post of myPosts) {
+        const likeCount = post.likeCount;
+        if (likeCount > 0) {
+            flag = true;
+            totalLikeCount += likeCount;
         }
     }
 
+    // メッセージの作成
     let message = "";
     if (flag) {
         message = `いいねされた投稿が${totalLikeCount}件あります`;
@@ -123,10 +133,10 @@ function readMyPostsUseCase() {
 
 // 使用例
 console.log("ログイン画面です");
-const loggedInResult = login("Eric", "password1"); // ログイン
+const loggedInResult = await login("Eric", "password1"); // ログイン
 console.log(`ログイン結果: ${loggedInResult}`);
 
 console.log("\n他画面でユーザーのMyPostsを確認します");
 
-const myPosts = readMyPostsUseCase();
+const myPosts = fetchMyPostsUseCase();
 console.log(myPosts);
