@@ -6,12 +6,10 @@ function checkCreditCardNumber(cardNumber) {
     for (var i = cardNumber.length - 1; i >= 0; i--) {
         let digit = Number(cardNumber[i]);
         if (isEven) {
-            {
-                digit *= 2;
-                if (digit > 9) {
-                    const [a, b] = String(digit).split("");
-                    digit = Number(a) + Number(b);
-                }
+            digit *= 2;
+            if (digit > 9) {
+                const [ten, one] = String(digit).split("");
+                digit = Number(ten) + Number(one);
             }
         }
         sum += digit;
