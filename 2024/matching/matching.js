@@ -1,19 +1,23 @@
 // 理想のタイプ（マッチング条件）
 class IdealType {
+    #minAge;
+    #maxAge;
+    #hobbies;
+    #locations;
     constructor(minAge, maxAge, hobbies, locations) {
-        this.minAge = minAge;
-        this.maxAge = maxAge;
-        this.hobbies = hobbies;
-        this.locations = locations;
+        this.#minAge = minAge;
+        this.#maxAge = maxAge;
+        this.#hobbies = hobbies;
+        this.#locations = locations;
     }
 
     // マッチするかどうかを判定
     match(candidate) {
         return (
-            candidate.age >= this.minAge &&
-            candidate.age <= this.maxAge &&
-            this.locations.includes(candidate.location) &&
-            this.hobbies.some((hobby) => candidate.hobbies.includes(hobby))
+            candidate.age >= this.#minAge &&
+            candidate.age <= this.#maxAge &&
+            this.#locations.includes(candidate.location) &&
+            this.#hobbies.some((hobby) => candidate.hobbies.includes(hobby))
         );
     }
 }
@@ -36,11 +40,12 @@ class LovedOne {
 
 // キューピッドがマッチングする（マッチング機能）
 class CupidMatching {
+    #criteria;
     constructor(lovedOne) {
         if (!lovedOne || !lovedOne.idealType) {
             throw new Error("理想のタイプが設定されていません");
         }
-        this.criteria = lovedOne.idealType; // 想い人の理想のタイプを基準にする
+        this.#criteria = lovedOne.idealType; // 想い人の理想のタイプを基準にする
     }
 
     // マッチング判定
@@ -49,7 +54,7 @@ class CupidMatching {
             throw new Error("ユーザー情報が無効です");
         }
 
-        if (this.criteria.match(candidate)) {
+        if (this.#criteria.match(candidate)) {
             return `${candidate.name}とのマッチング成立！`;
         } else {
             return `${candidate.name}とのマッチングは成立しませんでした。`;
