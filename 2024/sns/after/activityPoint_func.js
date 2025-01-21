@@ -64,7 +64,7 @@ function calcActivityPoints(userId, action, data) {
     };
 
     // アクションに応じたポイント計算処理を実行
-    let points = actionFnc[action](data);
+    const points = actionFnc[action](data);
 
     let bonusPoints = 0;
 

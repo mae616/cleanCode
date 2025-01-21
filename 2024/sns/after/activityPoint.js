@@ -17,7 +17,7 @@ function getUserLevel(userId) {
     return userLevels.PREMIUM; // 仮のデータ
 }
 
-// 関数内
+// アクティビティポイント計算
 function calcActivityPoints(userId, action) {
     const pointsMapping = {
         [userActions.POST]: 10,
@@ -27,7 +27,7 @@ function calcActivityPoints(userId, action) {
     };
 
     // アクションに応じたポイントを取得
-    let points = pointsMapping[action];
+    const points = pointsMapping[action];
 
     let bonusPoints = 0;
 
