@@ -100,51 +100,70 @@ function canFollowMore(FOLLOW_LIMIT) {
     return true;
 }
 
-// フォローする処理
-function followUserUseCase(userId, targetUserId) {
-    let isLoggedIn;
-    let isFollowed;
-    let isBlocked;
-    let isFollowLimit;
-    let loggedInUser;
-    let targetUser;
-    const FOLLOW_LIMIT = 5000;
-
-    // すでにログインしているかの確認
-    isLoggedIn = checkIfLoggedIn();
-    if (!isLoggedIn) {
-        return "ログインしていません";
-    }
-
-    // すでにフォローしているかの確認
-    isFollowed = getFollowUsers().some(
-        (followUser) =>
-            (followUser.from === userId && followUser.to) === targetUserId
-    );
-    if (isFollowed) {
-        return { error: "すでにフォローしています" };
-    }
-
-    // ブロックされていないかの確認
-    isBlocked = getBlockUsers().some(
-        (blockUser) =>
-            blockUser.from === targetUserId && blockUser.to === userId
-    );
-    if (isBlocked) {
-        return { error: "フォローできません" };
-    }
-
-    // フォロー数の制限チェック
-    if (!canFollowMore(userId, FOLLOW_LIMIT)) {
-        return { error: "フォロー上限に達しました" };
-    }
-
-    // フォロー処理の実行
+// フォロー処理
+function addFollow(userId, targetUserId) {
     follows.push({
         id: uuid(),
         from: userId,
         to: targetUserId,
     });
+}
+
+// フォローされているかの確認
+function isFollowedByUser(userId, targetUserId) {
+    return follows.some(
+        (followUser) =>
+            (followUser.from === userId && followUser.to) === targetUserId
+    );
+}
+
+// ブロックされているかの確認
+function isBlockedByUser(userId, targetUserId) {
+    return blocks.some(
+        (blockUser) =>
+            (blockUser.from === targetUserId && blockUser.to) === userId
+    );
+}
+
+// フォローする処理
+function followUserUseCase(userId, targetUserId) {
+    const FOLLOW_LIMIT = 5000;
+
+    // フォロー前のチェック処理
+    const checkBeforeFollow = (userId, targetUserId, FOLLOW_LIMIT) => {
+        // すでにログインしているかの確認
+        if (!checkIfLoggedIn()) {
+            return { error: "ログインしていません" };
+        }
+
+        // すでにフォローしているかの確認
+        const isFollowed = isFollowedByUser(userId, targetUserId);
+        if (isFollowed) {
+            return { error: "すでにフォローしています" };
+        }
+
+        // ブロックされていないかの確認
+        const isBlocked = isBlockedByUser(targetUserId, userId);
+        if (isBlocked) {
+            return { error: "フォローできません" };
+        }
+
+        // フォロー数の制限チェック
+        if (!canFollowMore(userId, FOLLOW_LIMIT)) {
+            return { error: "フォロー上限に達しました" };
+        }
+
+        return { success: true };
+    };
+
+    // フォロー前のチェック処理
+    const checkResult = checkBeforeFollow(userId, targetUserId, FOLLOW_LIMIT);
+    if (checkResult.error) {
+        return checkResult;
+    }
+
+    // フォロー処理の実行
+    addFollow(userId, targetUserId);
     return { success: "フォローしました" };
 }
 
